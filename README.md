@@ -1,2 +1,2 @@
 # shared
-For shared modest size tools tested by others
+For shared modest size evaluation tools tested by others
