@@ -1,0 +1,12 @@
+Integral statistics for sea ice -- area, extent, volume
+
+edit 'base' to point to the directory above the experiments
+  edit starting date 
+  then provide experiment name(s)
+assumes cycle = 00
+assumes members 000-010
+sfs.20231101/00/mem000/products/ice/netcdf/native
+all hours f024 to f8784
+
+needs auxiliary file with tarea for the cells
+

@@ -1,5 +1,6 @@
 # shared
-For shared modest size tools tested by others
+
+For shared modest size evaluation tools tested by others
 
 Sea ice verification data:
 WCOSS2 /u/robert.grumbine/noscrub/verification

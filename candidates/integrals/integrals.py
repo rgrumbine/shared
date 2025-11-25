@@ -1,0 +1,123 @@
+import sys
+import os
+import numpy as np
+import datetime
+from math import *
+import copy
+
+import netCDF4
+import matplotlib
+import matplotlib.pyplot as plt
+
+'''
+Integral statistics for sea ice -- area, extent, volume
+
+edit 'base' to point to the directory above the experiments
+  edit starting date 
+  then provide experiment name(s)
+assumes cycle = 00
+assumes members 000-010
+sfs.20231101/00/mem000/products/ice/netcdf/native
+all hours f024 to f8784
+
+needs auxiliary file with tarea for the cells
+
+'''
+
+# Edit these
+base   = '/ncrc/home1/Robert.Grumbine/scratch6/COMROOT/'
+start  = datetime.datetime(2023,11,1)
+expt   = 'evo3'
+maxmem = 10
+crit_conc = 0.15 #concentration defining 'extent'
+
+tarea = np.ones((320,360)) #j,i
+tarea *= 55*111.2/1.e6
+
+# Should not need editing below here
+def find_extent(tarea, ai, crit_conc):
+  total = 0.
+  nj = 320
+  ni = 360
+
+  for j in range(0,nj):
+    for i in range(0,ni):
+      if (ai[j,i] > crit_conc): total += tarea[j,i]
+
+  return total
+
+#------------------------------------------------
+matplotlib.use('Agg')
+fig,ax = plt.subplots()
+
+area   = np.zeros((int((8784-24)/24)+2 ))
+extent = np.zeros((int((8784-24)/24)+2 ))
+nhext  = np.zeros((int((8784-24)/24)+2 ))
+shext  = np.zeros((int((8784-24)/24)+2 ))
+volume = np.zeros((int((8784-24)/24)+2 ))
+days   = np.zeros(len(area))
+
+for memno in range(0,maxmem+1):
+#for memno in range(0,2):
+#debug: memno  = 0
+
+  fbase = base + expt + '/sfs.' + start.strftime("%Y%m%d") + '/00/mem'+"{:03d}".format(memno)+'/products/ice/netcdf/native/sfs.ice.t00z.native.f'
+
+  for h in range(24,8784+1,24):
+    fname = fbase + "{:03d}".format(h) + '.nc'
+    if (not os.path.exists(fname)):
+        print("no such file ",fname)
+        exit(1)
+    model = netCDF4.Dataset(fname)
+    if (h == 24 and memno == 0):
+      tlat = model.variables['TLAT'][:,:]
+      #tarea *= np.cos(tlat*pi/180.)
+      fhistory = base + expt + '/sfs.' + start.strftime("%Y%m%d") + '/00/mem'+"{:03d}".format(memno)+'/model/ice/history/sfs.ice.t00z.24hr_avg.f024.nc'
+      grid = netCDF4.Dataset(fhistory)
+      tarea = grid.variables['tarea'][:,:]
+      del grid
+      tarea /= 1e12
+      #debug: print("tarea ",tarea.max(), tarea.min() )
+      #debug: exit(0)
+
+      nharea = copy.deepcopy(tarea)
+      nharea[tlat < 0] = 0.
+      sharea = copy.deepcopy(tarea)
+      sharea[tlat > 0] = 0.
+      print("nh, sh area",nharea.max(), sharea.max(), nharea.shape )
+  
+    hi = model.variables['hi_h'][0,:,:]
+    ai = model.variables['aice_h'][0,:,:]
+  
+    i = int(h/24)
+    days[i] = h/24
+  
+    tmp       = ai*tarea
+    area[i]   = tmp.sum() 
+    volume[i] = (hi*tmp).sum()
+  
+    #extent[i] = tarea[ ai > crit_conc ].sum()
+    extent[i] = find_extent(tarea, ai, crit_conc)
+    #print(days[i], area[i], volume[i], extent[i])
+    nhext[i] = find_extent(nharea, ai, crit_conc)
+    shext[i] = find_extent(sharea, ai, crit_conc)
+    print(memno, days[i], area[i], volume[i], extent[i], nhext[i], shext[i], flush=True )
+
+  if (memno == 0):
+    ax.plot(days, area, color = 'red', label = 'area')
+    ax.plot(days, extent, color = 'blue', label = 'extent')
+    ax.plot(days, nhext, color = 'blue', label = 'nhext')
+    ax.plot(days, shext, color = 'blue', label = 'shext')
+    ax.plot(days[2:], volume[2:], color = 'black', label = 'volume')
+  else:
+    ax.plot(days, area, color = 'red')
+    ax.plot(days, extent, color = 'blue')
+    ax.plot(days, nhext, color = 'blue')
+    ax.plot(days, shext, color = 'blue')
+    ax.plot(days[2:], volume[2:], color = 'black')
+
+
+ax.legend()
+ax.grid()
+plt.savefig("out"+expt+".png")
+
