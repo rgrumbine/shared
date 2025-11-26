@@ -1,17 +1,18 @@
-import sys
-import os
-import numpy as np
-import datetime
-from math import *
-import copy
+'''
+Plot multiple files' given column number.
+If 5 or 6 (nhextent and shextent, respectively) also plot nsidc extents
+'''
 
-import netCDF4
+import sys
+#from math import *
+#import os
+#import datetime
+#import copy
+
+import numpy as np
+#import netCDF4
 import matplotlib
 import matplotlib.pyplot as plt
-
-'''
-
-'''
 
 #------------------------------------------------
 matplotlib.use('Agg')
@@ -45,7 +46,7 @@ elif (col == 5):
   fin_nsidc = open("nh.nsidc.20231101","r")
   have = True
 print("have = ",have)
-  
+
 if (have):
   vector = np.zeros((int((8784-24)/24)+2 ))
   i = 1
