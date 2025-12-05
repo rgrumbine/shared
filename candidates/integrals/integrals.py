@@ -13,27 +13,25 @@ needs auxiliary file with tarea for the cells
 
 '''
 
-import sys
+#import sys
 import os
 import datetime
-#from math import *
 import copy
 
 import numpy as np
+from numpy import ma
 import netCDF4
 import matplotlib
 import matplotlib.pyplot as plt
 
-
-# Edit these
+# Edit these ----------------------------------------------------------
 base   = '/ncrc/home1/Robert.Grumbine/scratch6/COMROOT/'
 start  = datetime.datetime(2023,11,1)
-expt   = 'notherm'
+expt   = 'icein3'
 maxmem = 10
+#maxhour = 8784
+maxhour = 744
 crit_conc = 0.15 #concentration defining 'extent'
-
-tarea = np.ones((320,360)) #j,i
-tarea *= 55*111.2/1.e6
 
 # Should not need editing below here ----------------------------------
 def find_extent(cellarea, conc, crit):
@@ -41,13 +39,22 @@ def find_extent(cellarea, conc, crit):
   Find the ice extent for a given critical concentration
   '''
   total = 0.
-  nj = 320
-  ni = 360
 
-  for jj in range(0,nj):
-    for ii in range(0,ni):
-      if (conc[jj,ii] > crit):
-        total += cellarea[jj,ii]
+  # very slow and requires shape info
+  #nj = 320
+  #ni = 360
+  #for jj in range(0,nj):
+  #  for ii in range(0,ni):
+  #    if (conc[jj,ii] > crit):
+  #      total += cellarea[jj,ii]
+
+  # about 14x faster than above
+  mask = ma.masked_array(conc >= crit)
+  indices = mask.nonzero()
+  for k in range(0,len(indices[0])):
+    jj = indices[0][k]
+    ii = indices[1][k]
+    total += cellarea[jj,ii]
 
   return total
 
@@ -55,11 +62,11 @@ def find_extent(cellarea, conc, crit):
 matplotlib.use('Agg')
 fig,ax = plt.subplots()
 
-area   = np.zeros((int((8784-24)/24)+2 ))
-extent = np.zeros((int((8784-24)/24)+2 ))
-nhext  = np.zeros((int((8784-24)/24)+2 ))
-shext  = np.zeros((int((8784-24)/24)+2 ))
-volume = np.zeros((int((8784-24)/24)+2 ))
+area   = np.zeros((int((maxhour-24)/24)+2 ))
+extent = np.zeros((int((maxhour-24)/24)+2 ))
+nhext  = np.zeros((int((maxhour-24)/24)+2 ))
+shext  = np.zeros((int((maxhour-24)/24)+2 ))
+volume = np.zeros((int((maxhour-24)/24)+2 ))
 days   = np.zeros(len(area))
 
 for memno in range(0,maxmem+1):
@@ -67,19 +74,20 @@ for memno in range(0,maxmem+1):
 #debug: memno  = 0
 
   fbase = base + expt + '/sfs.' + start.strftime("%Y%m%d") + '/00/mem' + \
-               "{:03d}".format(memno)+'/products/ice/netcdf/native/sfs.ice.t00z.native.f'
+               f"{memno:03d}" + '/products/ice/netcdf/native/sfs.t00z.tripolar.f'
 
-  for h in range(24,8784+1,24):
-    fname = fbase + "{:03d}".format(h) + '.nc'
+  for h in range(24,maxhour+1,24):
+    fname = fbase + f"{h:03d}" + '.nc'
     if (not os.path.exists(fname)):
         print("no such file ",fname)
-        sys.exit(1)
+        #sys.exit(1)
+        continue
     model = netCDF4.Dataset(fname)
     if (h == 24 and memno == 0):
       tlat = model.variables['TLAT'][:,:]
       #tarea *= np.cos(tlat*pi/180.)
       fhistory = base + expt + '/sfs.' + start.strftime("%Y%m%d") + \
-            '/00/mem'+"{:03d}".format(memno)+'/model/ice/history/sfs.ice.t00z.24hr_avg.f024.nc'
+            '/00/mem'+f"{memno:03d}"+'/model/ice/history/sfs.t00z.24hr_avg.f024.nc'
       grid = netCDF4.Dataset(fhistory)
       tarea = grid.variables['tarea'][:,:]
       del grid
@@ -107,10 +115,11 @@ for memno in range(0,maxmem+1):
     #debug: sys.exit(0)
 
     #extent[i] = tarea[ ai > crit_conc ].sum()
-    extent[i] = find_extent(tarea, ai, crit_conc)
+    #extent[i] = find_extent(tarea, ai, crit_conc)
     #debug: print(days[i], area[i], volume[i], extent[i], flush=True)
     nhext[i] = find_extent(nharea, ai, crit_conc)
     shext[i] = find_extent(sharea, ai, crit_conc)
+    extent[i] = nhext[i] + shext[i]
     print(memno, days[i], area[i], volume[i], extent[i], nhext[i], shext[i], flush=True )
 
   if (memno == 0):
