@@ -9,17 +9,20 @@ Robert.Grumbine
 
 import sys
 import datetime
+from math import sqrt,cos
 
 import numpy as np
-import numpy.ma as ma
+from numpy import ma
 import netCDF4 as nc
 
 from grid import *
 
 #---------------------------------------------------------------------------
-def qcfilt(conc, concvar, temp, tempvar, lat, count):
-    scale = count/cos(lat*3.1416/180.)
-    return not (temp < 268.545 and scale > 125.005)
+def qcfilt(fconc, fconcvar, ftemp, ftempvar, flat, fcount):
+    ''' function qcfilt applies the operational quality control filter to remove
+    weather effects in the VIIRS data set from NESDIS '''
+    scale = fcount/cos(flat*3.1416/180.)
+    return not (ftemp < 268.545 and scale > 125.005)
 
 
 #---------------------------------------------------------------------------
@@ -179,10 +182,10 @@ class ncout:
       #Generic global header info:
       self.ncfile.title = fout
       self.ncfile.setncattr("institution","NOAA/NWS/NCEP")
-      self.ncfile.setncattr("geospatial_lon_max","{:f}".format(self.lons.max() )  )
-      self.ncfile.setncattr("geospatial_lon_min","{:f}".format(self.lons.min() )  )
-      self.ncfile.setncattr("geospatial_lat_max","{:f}".format(self.lats.max() )  )
-      self.ncfile.setncattr("geospatial_lat_min","{:f}".format(self.lats.min() )  )
+      self.ncfile.setncattr("geospatial_lon_max",f"{self.lons.max():f}")
+      self.ncfile.setncattr("geospatial_lon_min",f"{self.lons.min():f}")
+      self.ncfile.setncattr("geospatial_lat_max",f"{self.lats.max():f}")
+      self.ncfile.setncattr("geospatial_lat_min",f"{self.lats.min():f}")
       tmp = datetime.date.today()
       self.ncfile.setncattr("date_created",tmp.strftime("%Y-%m-%d") )
 
@@ -216,6 +219,7 @@ class ncout:
       self.count += 1
 
     def encodevar(self, allvalues, vname):
+      ''' ncout.encodevar(array, variable_name) '''
       if (self.nx*self.ny != 0) :
         self.ncfile.variables[vname][:,:] = allvalues[:,:]
 
