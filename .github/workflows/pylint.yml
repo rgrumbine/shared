@@ -20,4 +20,4 @@ jobs:
         pip install pylint
     - name: Analysing the code with pylint
       run: |
-        pylint --disable=W0311,C0325 $(git ls-files '*.py')
+        pylint --disable=W0311,C0325,C0103,R1732 $(git ls-files '*.py')

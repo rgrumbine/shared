@@ -27,7 +27,7 @@ import matplotlib.pyplot as plt
 # Edit these ----------------------------------------------------------
 base   = '/ncrc/home1/Robert.Grumbine/scratch6/COMROOT/'
 start  = datetime.datetime(2023,11,1)
-expt   = 'icein3'
+expt   = 'icein5'
 maxmem = 10
 #maxhour = 8784
 maxhour = 744
@@ -74,7 +74,8 @@ for memno in range(0,maxmem+1):
 #debug: memno  = 0
 
   fbase = base + expt + '/sfs.' + start.strftime("%Y%m%d") + '/00/mem' + \
-               f"{memno:03d}" + '/products/ice/netcdf/native/sfs.t00z.tripolar.f'
+               f"{memno:03d}"+'/model/ice/history/sfs.t00z.24hr_avg.f'
+               #f"{memno:03d}" + '/products/ice/netcdf/native/sfs.t00z.tripolar.f'
 
   for h in range(24,maxhour+1,24):
     fname = fbase + f"{h:03d}" + '.nc'
@@ -86,8 +87,8 @@ for memno in range(0,maxmem+1):
     if (h == 24 and memno == 0):
       tlat = model.variables['TLAT'][:,:]
       #tarea *= np.cos(tlat*pi/180.)
-      fhistory = base + expt + '/sfs.' + start.strftime("%Y%m%d") + \
-            '/00/mem'+f"{memno:03d}"+'/model/ice/history/sfs.t00z.24hr_avg.f024.nc'
+      fhistory = base + expt + '/sfs.' + start.strftime("%Y%m%d") + '/00/mem' + \
+              f"{memno:03d}"+'/model/ice/history/sfs.t00z.24hr_avg.f024.nc'
       grid = netCDF4.Dataset(fhistory)
       tarea = grid.variables['tarea'][:,:]
       del grid
